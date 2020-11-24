@@ -18,6 +18,9 @@ class Task
 
         // Set SKU Number According To Product Category
         add_action('init', array($this, 'set_sku_by_category'));
+
+        // Get Product Cat List
+        add_action('init', array($this, 'get_product_cat_list'));
     }
 
     public function set_default_stock_product()
@@ -218,6 +221,80 @@ class Task
             clean_post_cache($product_id);
         }
 
+        exit;
+    }
+
+    public function get_product_cat_list()
+    {
+        if (!is_user_logged_in() || !current_user_can('manage_options')) {
+            return;
+        }
+
+        if (!isset($_GET['wc-group-task'])) {
+            return;
+        }
+
+        if ($_GET['wc-group-task'] != 'get-product-cat') {
+            return;
+        }
+
+        if (!isset($_GET['_parent'])) {
+            return;
+        }
+
+        if (!isset($_GET['_with_children'])) {
+            return;
+        }
+
+        if (!isset($_GET['_order'])) {
+            return;
+        }
+
+        if (!isset($_GET['_hide_empty'])) {
+            return;
+        }
+
+        $hide_empty = false;
+        if (isset($_GET['_hide_empty']) and $_GET['_hide_empty'] == "yes") {
+            $hide_empty = true;
+        }
+
+        $list = array();
+        $provinces = get_terms('product_cat', array(
+            'orderby' => 'term_id',
+            'order' => $_GET['_order'],
+            'parent' => $_GET['_parent'],
+            'hide_empty' => $hide_empty
+        ));
+        foreach ($provinces as $term) {
+            $item = array(
+                'name' => $term->name,
+                'id' => $term->term_id,
+                'slug' => $term->slug,
+            );
+
+            // Add Children
+            if ($_GET['_with_children'] == "yes") {
+                $item['children'] = array();
+                $cities = get_terms('product_cat', array(
+                    'orderby' => 'count',
+                    'parent' => $term->term_id,
+                    'order' => $_GET['_order'],
+                    'hide_empty' => $hide_empty
+                ));
+                foreach ($cities as $term_city) {
+                    $item['children'][] = array(
+                        'name' => $term_city->name,
+                        'id' => $term_city->term_id,
+                        'slug' => $term_city->slug
+                    );
+                }
+            }
+
+            $list[] = $item;
+        }
+
+        wp_send_json( $list, 200 );
         exit;
     }
 }
