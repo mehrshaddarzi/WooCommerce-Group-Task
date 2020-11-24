@@ -145,14 +145,22 @@ class Task
             return;
         }
 
+        if (!isset($_GET['_include_children'])) {
+            return;
+        }
+
         if (!isset($_GET['_task_id'])) {
             return;
         }
 
         // Get Category Ids
         $category_ids = explode(",", trim($_GET['_category_ids']));
-        $task_post_meta = 'wc-group-task-sku-'.trim($_GET['_task_id']);
+        $task_post_meta = 'wc-group-task-sku-' . trim($_GET['_task_id']);
         $_sku_from = trim($_GET['_sku_start_from']);
+        $include_children = true;
+        if (isset($_GET['_include_children']) and $_GET['_include_children'] == "no") {
+            $include_children = false;
+        }
 
         // Get List Product
         $products_ids = Utility::wp_query(
@@ -164,9 +172,10 @@ class Task
                 'tax_query' => array(
                     array(
                         'taxonomy' => 'product_cat',
-                        'field'    => 'term_id',
-                        'terms'    => $category_ids,
-                        'operator' => 'IN'
+                        'field' => 'term_id',
+                        'terms' => $category_ids,
+                        'operator' => 'IN',
+                        'include_children' => $include_children
                     )
                 ),
                 'meta_query' => array(
