@@ -130,6 +130,7 @@ class Task
 
     public function set_sku_by_category()
     {
+        global $wpdb;
 
         if (!is_user_logged_in() || !current_user_can('manage_options')) {
             return;
@@ -212,6 +213,9 @@ class Task
                 // Set SKU
                 update_post_meta($Product_ID, '_sku', $SKU);
 
+                // Delete LockUp
+                $wpdb->query("DELETE FROM `{$wpdb->wc_product_meta_lookup}` WHERE `product_id` = {$Product_ID}");
+
                 // Echo Detail
                 echo '<div>Product With ID is ' . $Product_ID . ' Set SKU To ' . $SKU . '</div><hr>';
                 $SKU++;
@@ -229,6 +233,7 @@ class Task
 
     public function set_sku_from_number()
     {
+        global $wpdb;
 
         if (!is_user_logged_in() || !current_user_can('manage_options')) {
             return;
@@ -283,6 +288,9 @@ class Task
             foreach ($p_ids as $Product_ID) {
                 // Set SKU
                 update_post_meta($Product_ID, '_sku', $SKU);
+
+                // Remove From Lockup
+                $wpdb->query("DELETE FROM `{$wpdb->wc_product_meta_lookup}` WHERE `product_id` = {$Product_ID}");
 
                 // Echo Detail
                 echo '<div>Product With ID is ' . $Product_ID . ' Set SKU To ' . $SKU . '</div><hr>';
@@ -369,7 +377,7 @@ class Task
             $list[] = $item;
         }
 
-        wp_send_json( $list, 200 );
+        wp_send_json($list, 200);
         exit;
     }
 }
