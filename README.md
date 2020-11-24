@@ -6,6 +6,12 @@
 http://site.com/?wc-group-task=set-all-stock&_stock=40&_backorders=no
 ````
 
+## Set Sku From Custom Number
+
+````
+http://site.com/?wc-group-task=set-sku&_sku_from=1000
+````
+
 ## Set SKU Number According To Product Category
 
 ````
