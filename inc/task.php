@@ -15,10 +15,17 @@ class Task
 
         // Set A Stock for All Product Simple and Variable
         add_action('init', array($this, 'set_default_stock_product'));
+
+        // Set SKU Number According To Product Category
+        add_action('init', array($this, 'set_sku_by_category'));
     }
 
     public function set_default_stock_product()
     {
+        if (!is_user_logged_in() || !current_user_can('manage_options')) {
+            return;
+        }
+
         if (!isset($_GET['wc-group-task'])) {
             return;
         }
@@ -105,8 +112,101 @@ class Task
             // Set Post Meta
             update_post_meta($product_id, 'wc-group-task-stock-' . $stock_number, $stock_number);
 
+            // Clean Post Cache
+            clean_post_cache($product_id);
+
             // Echo Detail
             echo '<div>Product With ID is ' . $product_id . ' Set Stock To ' . $stock_number . '</div><hr>';
+        }
+
+        exit;
+    }
+
+    public function set_sku_by_category()
+    {
+
+        if (!is_user_logged_in() || !current_user_can('manage_options')) {
+            return;
+        }
+
+        if (!isset($_GET['wc-group-task'])) {
+            return;
+        }
+
+        if ($_GET['wc-group-task'] != 'set-sku-by-category') {
+            return;
+        }
+
+        if (!isset($_GET['_category_ids'])) {
+            return;
+        }
+
+        if (!isset($_GET['_sku_start_from'])) {
+            return;
+        }
+
+        if (!isset($_GET['_task_id'])) {
+            return;
+        }
+
+        // Get Category Ids
+        $category_ids = explode(",", trim($_GET['_category_ids']));
+        $task_post_meta = 'wc-group-task-sku-'.trim($_GET['_task_id']);
+        $_sku_from = trim($_GET['_sku_start_from']);
+
+        // Get List Product
+        $products_ids = Utility::wp_query(
+            array(
+                'post_type' => 'product',
+                'post_status' => 'any',
+                'posts_per_page' => '-1',
+                'order' => 'ASC',
+                'tax_query' => array(
+                    array(
+                        'taxonomy' => 'product_cat',
+                        'field'    => 'term_id',
+                        'terms'    => $category_ids,
+                        'operator' => 'IN'
+                    )
+                ),
+                'meta_query' => array(
+                    array(
+                        'relation' => 'OR',
+                        array(
+                            'key' => $task_post_meta,
+                            'value' => '', // Not required but necessary in this case
+                            'compare' => 'NOT EXISTS',
+                        ),
+                        array(
+                            'key' => $task_post_meta,
+                            'value' => 'yes',
+                            'compare' => 'NOT LIKE',
+                        )
+                    )
+                )
+            ),
+            false
+        );
+
+        $SKU = $_sku_from;
+        foreach ($products_ids as $product_id) {
+
+            // Get Product Variables IDs
+            $p_ids = Helper::getWooCommerceProductsChildren($product_id);
+            foreach ($p_ids as $Product_ID) {
+                // Set SKU
+                update_post_meta($Product_ID, '_sku', $SKU);
+
+                // Echo Detail
+                echo '<div>Product With ID is ' . $Product_ID . ' Set SKU To ' . $SKU . '</div><hr>';
+                $SKU++;
+            }
+
+            // Set Post Meta
+            update_post_meta($product_id, $task_post_meta, 'yes');
+
+            // Clean Post Cache
+            clean_post_cache($product_id);
         }
 
         exit;
